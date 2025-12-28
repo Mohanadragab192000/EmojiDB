@@ -9,7 +9,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ikwerre-dev/emojidb/crypto"
+	"github.com/ikwerre-dev/EmojiDB/crypto"
 )
 
 const MagicRaw = "EMOJI"

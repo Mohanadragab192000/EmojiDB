@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ikwerre-dev/emojidb/crypto"
-	"github.com/ikwerre-dev/emojidb/storage"
+	"github.com/ikwerre-dev/EmojiDB/crypto"
+	"github.com/ikwerre-dev/EmojiDB/storage"
 )
 
 type Config struct {

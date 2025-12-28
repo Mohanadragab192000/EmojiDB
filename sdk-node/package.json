@@ -1,0 +1,17 @@
+{
+    "name": "emojidb-sdk",
+    "version": "1.0.0",
+    "description": "High-performance Node.js SDK for the EmojiDB encrypted engine.",
+    "main": "index.js",
+    "scripts": {
+        "test": "node test.js"
+    },
+    "keywords": [
+        "database",
+        "encryption",
+        "emoji",
+        "go-bridge"
+    ],
+    "author": "EmojiDB Team",
+    "license": "MIT"
+}

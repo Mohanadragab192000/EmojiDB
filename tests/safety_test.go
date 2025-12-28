@@ -4,9 +4,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ikwerre-dev/emojidb/core"
-	"github.com/ikwerre-dev/emojidb/query"
-	"github.com/ikwerre-dev/emojidb/safety"
+	"github.com/ikwerre-dev/EmojiDB/core"
+	"github.com/ikwerre-dev/EmojiDB/query"
+	"github.com/ikwerre-dev/EmojiDB/safety"
 )
 
 func TestSafetyEngine(t *testing.T) {

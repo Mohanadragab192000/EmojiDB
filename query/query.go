@@ -3,7 +3,7 @@ package query
 import (
 	"errors"
 
-	"github.com/ikwerre-dev/emojidb/core"
+	"github.com/ikwerre-dev/EmojiDB/core"
 )
 
 type Query struct {

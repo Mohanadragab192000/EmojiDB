@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/ikwerre-dev/emojidb/crypto"
+	"github.com/ikwerre-dev/EmojiDB/crypto"
 )
 
 func TestCrypto(t *testing.T) {

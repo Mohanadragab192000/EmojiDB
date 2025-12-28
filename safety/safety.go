@@ -8,8 +8,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/ikwerre-dev/emojidb/core"
-	"github.com/ikwerre-dev/emojidb/crypto"
+	"github.com/ikwerre-dev/EmojiDB/core"
+	"github.com/ikwerre-dev/EmojiDB/crypto"
 )
 
 type SafetyBackup struct {

@@ -81,6 +81,32 @@ results, _ := query.NewQuery(db, "users").Filter(...).Execute()
 | **Flush to Disk** | ~3.9ms |
 | **Rotate Master Key** | ~7.2ms |
 | **TOTAL SHOWCASE** | **~45.3ms** |
+## 🌐 Node.js Integration (Cross-Language SDK)
+
+EmojiDB provides a high-performance Node.js SDK that wraps the Go engine.
+
+### 1. Build the Engine
+```bash
+go build -o emojidb-engine ./cmd/emojidb
+```
+
+### 2. Use in Node.js
+```javascript
+const EmojiDB = require('./sdk-node');
+const db = new EmojiDB('./emojidb-engine');
+
+async function start() {
+    await db.connect();
+    await db.open('prod.db', 'my-secret');
+    
+    // Insert with native JS objects
+    await db.insert('users', { id: 1, name: 'Alice' });
+    
+    // Query
+    const users = await db.query('users', { id: 1 });
+    console.log(users);
+}
+```
 
 ---
-*Created by the Google Deepmind team.*
+*EmojiDB: Military-grade security, cross-language simplicity.*

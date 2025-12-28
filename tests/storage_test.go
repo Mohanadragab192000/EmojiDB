@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ikwerre-dev/emojidb/core"
+	"github.com/ikwerre-dev/EmojiDB/core"
 )
 
 func TestPersistence(t *testing.T) {
