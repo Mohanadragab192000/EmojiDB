@@ -1,0 +1,7 @@
+emojidb/
+bin/
+test.js
+*.db
+*.db.safety
+*.db.schema.json
+secure.pem

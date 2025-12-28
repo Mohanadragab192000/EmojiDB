@@ -1,4 +1,4 @@
-# 🦄 EmojiDB: The Total Emoji Encrypted Database
+#  EmojiDB: The Total Emoji Encrypted Database
 
 EmojiDB is a high-performance, embedded database designed for maximum security and visual fun. Every record, every header, and even your schema definition is strictly 100% Emoji encoded.
 
@@ -81,32 +81,34 @@ results, _ := query.NewQuery(db, "users").Filter(...).Execute()
 | **Flush to Disk** | ~3.9ms |
 | **Rotate Master Key** | ~7.2ms |
 | **TOTAL SHOWCASE** | **~45.3ms** |
-## 🌐 Node.js Integration (Cross-Language SDK)
+## 🌐 Node.js Integration (Standalone SDK)
 
-EmojiDB provides a high-performance Node.js SDK that wraps the Go engine.
+EmojiDB provides a standalone Node.js SDK that **automatically downloads** the required Go engine for your platform. No Go installation required!
 
-### 1. Build the Engine
+### 1. Installation
 ```bash
-go build -o emojidb-engine ./cmd/emojidb
+npm install @ikwerre-dev/emojidb
 ```
 
-### 2. Use in Node.js
+### 2. Standalone Usage
 ```javascript
-const EmojiDB = require('./sdk-node');
-const db = new EmojiDB('./emojidb-engine');
+const EmojiDB = require('@ikwerre-dev/emojidb');
+const db = new EmojiDB(); // Auto-detects OS/Arch and downloads from GitHub
 
 async function start() {
     await db.connect();
     await db.open('prod.db', 'my-secret');
     
-    // Insert with native JS objects
     await db.insert('users', { id: 1, name: 'Alice' });
-    
-    // Query
     const users = await db.query('users', { id: 1 });
-    console.log(users);
 }
 ```
 
+### 📦 Publishing Pre-built Binaries
+For the standalone mode to work, you must upload pre-compiled engines to your **GitHub Releases** with the following naming convention:
+- `emojidb-darwin-arm64` (Mac M1/M2)
+- `emojidb-linux-x64` (Linux Servers)
+- `emojidb-win32-x64.exe` (Windows)
+
 ---
-*EmojiDB: Military-grade security, cross-language simplicity.*
+*EmojiDB: Zero-dependency, military-grade security.*

@@ -8,6 +8,7 @@ import (
 
 	"github.com/ikwerre-dev/EmojiDB/core"
 	"github.com/ikwerre-dev/EmojiDB/query"
+	"github.com/ikwerre-dev/EmojiDB/safety"
 )
 
 type Request struct {
@@ -86,6 +87,55 @@ func handle(req Request) {
 			sendError(req.ID, err.Error())
 		} else {
 			sendSuccess(req.ID, "inserted")
+		}
+
+	case "update":
+		var p struct {
+			Table  string                 `json:"table"`
+			Match  map[string]interface{} `json:"match"`
+			Update core.Row               `json:"update"`
+		}
+		json.Unmarshal(req.Params, &p)
+		if db == nil {
+			sendError(req.ID, "db not open")
+			return
+		}
+		err := safety.Update(db, p.Table, func(r core.Row) bool {
+			for k, v := range p.Match {
+				if r[k] != v {
+					return false
+				}
+			}
+			return true
+		}, p.Update)
+		if err != nil {
+			sendError(req.ID, err.Error())
+		} else {
+			sendSuccess(req.ID, "updated")
+		}
+
+	case "delete":
+		var p struct {
+			Table string                 `json:"table"`
+			Match map[string]interface{} `json:"match"`
+		}
+		json.Unmarshal(req.Params, &p)
+		if db == nil {
+			sendError(req.ID, "db not open")
+			return
+		}
+		err := safety.Delete(db, p.Table, func(r core.Row) bool {
+			for k, v := range p.Match {
+				if r[k] != v {
+					return false
+				}
+			}
+			return true
+		})
+		if err != nil {
+			sendError(req.ID, err.Error())
+		} else {
+			sendSuccess(req.ID, "deleted")
 		}
 
 	case "query":

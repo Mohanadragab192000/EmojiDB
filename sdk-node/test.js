@@ -2,7 +2,8 @@ const EmojiDB = require('./index');
 const path = require('path');
 
 async function runTest() {
-    const db = new EmojiDB(path.join(__dirname, '..', 'emojidb-engine'));
+    // Standalone mode: auto-downloads engine from GitHub if not found
+    const db = new EmojiDB();
 
     try {
         console.log('--- EMOJIDB NODE.JS TEST ---');
@@ -14,8 +15,8 @@ async function runTest() {
         console.log('2. Database Opened');
 
         await db.defineSchema('users', [
-            { Name: 'id', Type: 0, Unique: true }, // FieldTypeInt = 0
-            { Name: 'username', Type: 1, Unique: false } // FieldTypeString = 1
+            { Name: 'id', Type: 0, Unique: true },
+            { Name: 'username', Type: 1, Unique: false }
         ]);
         console.log('3. Schema Defined');
 
