@@ -39,7 +39,7 @@ func (t *Table) Insert(record Row) error {
 	defer t.Mu.Unlock()
 
 	if t.HotHeap == nil {
-		t.HotHeap = NewHotHeap(1000) // testing limit
+		t.HotHeap = NewHotHeap(1000)
 	}
 
 	for _, field := range t.Schema.Fields {
@@ -57,6 +57,14 @@ func (t *Table) Insert(record Row) error {
 	}
 
 	return nil
+}
+
+func (t *Table) Flush() {
+	t.Mu.Lock()
+	defer t.Mu.Unlock()
+	if t.HotHeap != nil && len(t.HotHeap.Rows) > 0 {
+		t.SealHotHeap()
+	}
 }
 
 func (t *Table) SealHotHeap() {

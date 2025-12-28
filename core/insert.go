@@ -15,3 +15,14 @@ func (db *Database) Insert(tableName string, record Row) error {
 
 	return table.Insert(record)
 }
+
+func (db *Database) Flush(tableName string) error {
+	db.Mu.RLock()
+	table, ok := db.Tables[tableName]
+	db.Mu.RUnlock()
+	if !ok {
+		return nil
+	}
+	table.Flush()
+	return nil
+}

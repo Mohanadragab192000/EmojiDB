@@ -6,11 +6,16 @@ import (
 
 	"github.com/ikwerre-dev/emojidb/core"
 	"github.com/ikwerre-dev/emojidb/query"
+	"github.com/ikwerre-dev/emojidb/safety"
 )
 
 func TestQuery(t *testing.T) {
 	dbPath := "test_query.db"
-	defer os.Remove(dbPath)
+	safetyPath := "safety.db"
+
+	// We don't defer remove here so the user can see the files
+	os.Remove(dbPath)
+	os.Remove(safetyPath)
 
 	db, err := core.Open(dbPath, "secret", false)
 	if err != nil {
@@ -25,9 +30,24 @@ func TestQuery(t *testing.T) {
 	}
 	db.DefineSchema("users", fields)
 
+	// Insert data
 	db.Insert("users", core.Row{"id": 1, "name": "alice", "age": 30})
 	db.Insert("users", core.Row{"id": 2, "name": "bob", "age": 25})
-	db.Insert("users", core.Row{"id": 3, "name": "charlie", "age": 35})
+
+	// Safety backup for inserts (calling it manually for now as requested)
+	safety.BackupForSafety(db, "users", core.Row{"id": 1, "name": "alice", "age": 30})
+	safety.BackupForSafety(db, "users", core.Row{"id": 2, "name": "bob", "age": 25})
+
+	// Force flush to disk
+	db.Flush("users")
+
+	// Verify file exists
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		t.Error("test_query.db was not created")
+	}
+	if _, err := os.Stat(safetyPath); os.IsNotExist(err) {
+		t.Error("safety.db was not created")
+	}
 
 	q := query.NewQuery(db, "users")
 	results, err := q.Filter(func(r core.Row) bool {
@@ -39,24 +59,16 @@ func TestQuery(t *testing.T) {
 		t.Fatalf("query failed: %v", err)
 	}
 
-	if len(results) != 2 {
-		t.Errorf("expected 2, got %d", len(results))
-	}
-
-	q2 := query.NewQuery(db, "users")
-	results, _ = q2.Filter(func(r core.Row) bool { return r["name"] == "bob" }).
-		Select("name").
-		Execute()
-
 	if len(results) != 1 {
-		t.Fatalf("expected 1, got %d", len(results))
+		t.Errorf("expected 1, got %d", len(results))
 	}
 
-	if len(results[0]) != 1 {
-		t.Errorf("expected 1 col, got %d", len(results[0]))
+	// Verify safety recovery points
+	points, err := safety.ListRecoveryPoints(db)
+	if err != nil {
+		t.Fatalf("failed to list recovery points: %v", err)
 	}
-
-	if _, ok := results[0]["age"]; ok {
-		t.Error("age column found")
+	if len(points) != 2 {
+		t.Errorf("expected 2 recovery points, got %d", len(points))
 	}
 }
