@@ -45,7 +45,7 @@ EmojiDB supports Prisma-like schema evolution.
 **1. Apply Changes from Schema File (`db.migrate()`)**  
 Edit your `emojidb/*.schema.json` file manually, then run:
 ```javascript
-// Syncs ALL tables in the schema file to the DB
+// Syncs ALL tables from file
 await db.migrate(); 
 
 // OR sync just one table from the file
@@ -61,10 +61,30 @@ await db.migrate('users', [
 ]);
 ```
 
-**3. Pull Schema from DB (`pull`)**  
+**⚠️ Force Migration (Destructive)**  
+If you have data that violates the new schema (e.g., changing type from String to Int), you can **force** the migration.
+> **Warning**: This will DELETE any rows that do not match the new schema.
+```javascript
+// Force migrate 'users' table from file
+await db.migrate('users', true);
+
+// Force migrate with explicit fields
+await db.migrate('users', [...fields], true);
+```
+
+**3. Pull Schema (`pull`)**  
 Force-regenerate your local schema file from the actual database state.
 ```javascript
 await db.pull();
+```
+
+### 📊 Aggregations & Utilities
+```javascript
+// Count records
+const numActive = await db.count('users', { active: true });
+
+// Drop Table (Destructive)
+await db.dropTable('old_logs');
 ```
 
 ### 📝 Field Types

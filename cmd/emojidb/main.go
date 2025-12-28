@@ -76,17 +76,51 @@ func handle(req Request) {
 		var p struct {
 			Table  string       `json:"table"`
 			Fields []core.Field `json:"fields"`
+			Force  bool         `json:"force"`
 		}
 		json.Unmarshal(req.Params, &p)
 		if db == nil {
 			sendError(req.ID, "db not open")
 			return
 		}
-		err := db.SyncSchema(p.Table, p.Fields)
+		err := db.SyncSchema(p.Table, p.Fields, p.Force)
 		if err != nil {
 			sendError(req.ID, err.Error())
 		} else {
 			sendSuccess(req.ID, "migrated")
+		}
+
+	case "count":
+		var p struct {
+			Table string                 `json:"table"`
+			Match map[string]interface{} `json:"match"`
+		}
+		json.Unmarshal(req.Params, &p)
+		if db == nil {
+			sendError(req.ID, "db not open")
+			return
+		}
+		count, err := db.Count(p.Table, p.Match)
+		if err != nil {
+			sendError(req.ID, err.Error())
+		} else {
+			sendSuccess(req.ID, count)
+		}
+
+	case "drop_table":
+		var p struct {
+			Table string `json:"table"`
+		}
+		json.Unmarshal(req.Params, &p)
+		if db == nil {
+			sendError(req.ID, "db not open")
+			return
+		}
+		err := db.DropTable(p.Table)
+		if err != nil {
+			sendError(req.ID, err.Error())
+		} else {
+			sendSuccess(req.ID, "dropped")
 		}
 
 	case "pull_schema":

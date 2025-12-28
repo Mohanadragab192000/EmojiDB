@@ -227,10 +227,19 @@ class EmojiDB {
         return this.send('query', { table, match });
     }
 
-    async migrate(table, fields) {
+    async migrate(table, fieldsOrForce, forceArg = false) {
+        let fields = null;
+        let force = forceArg;
+
+        if (Array.isArray(fieldsOrForce)) {
+            fields = fieldsOrForce;
+        } else if (typeof fieldsOrForce === 'boolean') {
+            force = fieldsOrForce;
+        }
+
         // Case 3: Explicit Migration (table + fields provided)
         if (table && fields) {
-            return this.send('sync_schema', { table, fields });
+            return this.send('sync_schema', { table, fields, force });
         }
 
         // Case 1 & 2: File-Based Migration
@@ -239,7 +248,6 @@ class EmojiDB {
         }
 
         // Construct path: emojidb/[basename].schema.json
-        // The Go engine forces the 'emojidb' folder.
         const baseName = path.basename(this.dbPath);
         const schemaPath = path.join('emojidb', baseName + '.schema.json');
 
@@ -260,7 +268,7 @@ class EmojiDB {
             if (!schema[table]) {
                 throw new Error(`Table '${table}' not defined in schema file.`);
             }
-            return this.send('sync_schema', { table, fields: schema[table].Fields });
+            return this.send('sync_schema', { table, fields: schema[table].Fields, force });
         }
 
         // Case 1: Migrate All Tables from File
@@ -270,7 +278,7 @@ class EmojiDB {
         const results = [];
         for (const t of tables) {
             // We run them sequentially to be safe
-            await this.send('sync_schema', { table: t, fields: schema[t].Fields });
+            await this.send('sync_schema', { table: t, fields: schema[t].Fields, force });
             results.push(t);
         }
         return `Migrated ${results.length} tables: ${results.join(', ')}`;
@@ -278,6 +286,14 @@ class EmojiDB {
 
     async pull() {
         return this.send('pull_schema');
+    }
+
+    async count(table, match = {}) {
+        return this.send('count', { table, match });
+    }
+
+    async dropTable(table) {
+        return this.send('drop_table', { table });
     }
 
     async update(table, match, updateData) {

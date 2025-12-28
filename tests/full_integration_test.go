@@ -231,7 +231,7 @@ func TestFullShowcase(t *testing.T) {
 	report := db.DiffSchema("products", productFields)
 	fmt.Printf("   Diff Report: Compatiable=%v, Conflicts=%d\n", report.Compatiable, len(report.Conflicts))
 
-	err = db.SyncSchema("products", productFields)
+	err = db.SyncSchema("products", productFields, false)
 	if err != nil {
 		t.Fatalf("Schema sync failed: %v", err)
 	}

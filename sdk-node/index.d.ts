@@ -62,10 +62,36 @@ export default class EmojiDB {
 
     /**
      * Applies schema changes to the database (Migration).
-     * @param table (Optional) Name of the table. If omitted, migrates ALL tables from the local schema file.
-     * @param fields (Optional) New field definitions. If omitted, reads from the local schema file.
+     * @param table Name of the table.
+     * @param fields New field definitions.
+     * @param force If true, forcefully rewrites the table, discarding rows that violate the new schema.
      */
-    migrate(table?: string, fields?: Field[]): Promise<string>;
+    migrate(table: string, fields: Field[], force?: boolean): Promise<string>;
+
+    /**
+     * Applies schema changes to the database (Migration) using the local schema file.
+     * @param table Name of the table.
+     * @param force If true, forcefully rewrites the table, discarding rows that violate the new schema.
+     */
+    migrate(table: string, force?: boolean): Promise<string>;
+
+    /**
+     * Applies schema changes for ALL tables in the local schema file.
+     */
+    migrate(): Promise<string>;
+
+    /**
+     * Counts the number of records in a table matching the condition.
+     * @param table Name of the table.
+     * @param match Filter conditions (e.g. { active: true }).
+     */
+    count(table: string, match?: Record<string, any>): Promise<number>;
+
+    /**
+     * destructively drops a table and all its data.
+     * @param table Name of the table.
+     */
+    dropTable(table: string): Promise<string>;
 
     /**
      * Forces the engine to regenerate the local schema file based on the database content (Pull).

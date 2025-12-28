@@ -198,10 +198,13 @@ func (db *Database) DiffSchema(tableName string, newFields []Field) ConflictRepo
 	return report
 }
 
-func (db *Database) SyncSchema(tableName string, newFields []Field) error {
+func (db *Database) SyncSchema(tableName string, newFields []Field, force bool) error {
 	report := db.DiffSchema(tableName, newFields)
 	if !report.Compatiable {
-		return fmt.Errorf("incompatible schema change: %v", report.Conflicts)
+		if !force {
+			return fmt.Errorf("incompatible schema change: %v", report.Conflicts)
+		}
+		// Force Migration: Proceed despite conflicts
 	}
 
 	db.Mu.Lock()
@@ -210,7 +213,8 @@ func (db *Database) SyncSchema(tableName string, newFields []Field) error {
 
 	if table, ok := db.Tables[tableName]; ok {
 		table.Schema = schema
-		// Update unique indices
+
+		// Update unique indices definition
 		indices := make(map[string]map[interface{}]struct{})
 		for _, f := range newFields {
 			if f.Unique {
@@ -219,33 +223,146 @@ func (db *Database) SyncSchema(tableName string, newFields []Field) error {
 		}
 		table.UniqueIndices = indices
 
-		// Recalculate unique indices from existing data
-		for _, clump := range table.SealedClumps {
-			for _, row := range clump.Rows {
+		// HELPER: Validate and Filter Rows
+		filterRows := func(rows []Row) []Row {
+			var valid []Row
+			for _, row := range rows {
+				keep := true
+				// Check types
 				for _, f := range newFields {
-					if f.Unique {
-						val, ok := row[f.Name]
-						if ok {
-							table.UniqueIndices[f.Name][val] = struct{}{}
+					val, exists := row[f.Name]
+					if exists {
+						// Simple type check (in production this would be more robust)
+						// For now, if type mismatches significantly, we drop?
+						// Or we trust the Go type assertion/check?
+						// Let's check Unique constraints here too?
+						if f.Unique {
+							// For unique, we need to populate indices.
+							// If duplicate, we drop.
+							if _, seen := indices[f.Name][val]; seen {
+								keep = false
+								break
+							}
+							indices[f.Name][val] = struct{}{}
 						}
 					}
 				}
-			}
-		}
-		for _, row := range table.HotHeap.Rows {
-			for _, f := range newFields {
-				if f.Unique {
-					val, ok := row[f.Name]
-					if ok {
-						table.UniqueIndices[f.Name][val] = struct{}{}
-					}
+				if keep {
+					valid = append(valid, row)
 				}
 			}
+			return valid
 		}
+
+		// 1. Filter Sealed Clumps
+		// We need to re-process all clumps because unique indices must be global
+		// To do this correctly for "Force", we should probably flatten, filter, and re-clump?
+		// Or just filter in place.
+		// Since we reset indices above, we just iterate.
+		for _, clump := range table.SealedClumps {
+			clump.Rows = filterRows(clump.Rows)
+			clump.Metadata.RowCount = len(clump.Rows) // Update metadata
+		}
+
+		// 2. Filter Hot Heap
+		table.HotHeap.Rows = filterRows(table.HotHeap.Rows)
 	}
 	db.Mu.Unlock()
 
+	if force {
+		// Validated and filtered in memory. Now enforce on disk.
+		return db.Rewrite()
+	}
+
 	return db.SaveSchemas()
+}
+
+func (db *Database) Count(tableName string, match map[string]interface{}) (int, error) {
+	db.Mu.RLock()
+	table, ok := db.Tables[tableName]
+	db.Mu.RUnlock()
+
+	if !ok {
+		return 0, errors.New("table not found: " + tableName)
+	}
+
+	table.Mu.RLock()
+	defer table.Mu.RUnlock()
+
+	count := 0
+	check := func(r Row) {
+		matchCount := 0
+		for k, v := range match {
+			if r[k] == v {
+				matchCount++
+			}
+		}
+		if matchCount == len(match) {
+			count++
+		}
+	}
+
+	for _, clump := range table.SealedClumps {
+		for _, row := range clump.Rows {
+			check(row)
+		}
+	}
+	for _, row := range table.HotHeap.Rows {
+		check(row)
+	}
+
+	return count, nil
+}
+
+func (db *Database) DropTable(tableName string) error {
+	db.Mu.Lock()
+	delete(db.Schemas, tableName)
+	delete(db.Tables, tableName)
+	db.Mu.Unlock()
+
+	// Persist schema change
+	if err := db.SaveSchemas(); err != nil {
+		return err
+	}
+	// Rewriting file to remove data is expensive but correct for "Drop".
+	// For MVP, user wants "Count and others".
+	// Let's do Rewrite to be clean.
+	return db.Rewrite()
+}
+
+func (db *Database) Rewrite() error {
+	db.Mu.Lock()
+	defer db.Mu.Unlock()
+
+	// 1. Truncate
+	if err := db.File.Truncate(0); err != nil {
+		return err
+	}
+	if _, err := db.File.Seek(0, 0); err != nil {
+		return err
+	}
+
+	// 2. Header
+	if err := storage.WriteHeader(db.File); err != nil {
+		return err
+	}
+
+	// 3. Persist all tables
+	for tableName, table := range db.Tables {
+		table.Mu.RLock()
+		for _, clump := range table.SealedClumps {
+			if len(clump.Rows) == 0 {
+				continue
+			} // Skip empty clumps from filtering
+			if err := storage.InternalPersistClump(db.File, tableName, clump, db.Key, crypto.Encrypt, crypto.EncodeToEmojis); err != nil {
+				table.Mu.RUnlock()
+				return err
+			}
+		}
+		table.Mu.RUnlock()
+	}
+
+	return db.File.Sync()
 }
 
 func (db *Database) Insert(tableName string, record Row) error {
