@@ -217,9 +217,24 @@ func TestFullShowcase(t *testing.T) {
 		took time.Duration
 	}{"Inspect File", time.Since(start)})
 
-	// 12. Query Engine
+	// 12. Schema Evolution: Updating 'products' (Prisma-like)
 	start = time.Now()
-	fmt.Println("12. Running Fluent Query: Category = 'updated_bulk'")
+	fmt.Println("12. Schema Evolution: Adding 'stock' field and Checking Diff")
+	productFields = append(productFields, core.Field{Name: "stock", Type: core.FieldTypeInt})
+
+	report := db.DiffSchema("products", productFields)
+	fmt.Printf("   Diff Report: Compatiable=%v, Conflicts=%d\n", report.Compatiable, len(report.Conflicts))
+
+	err = db.SyncSchema("products", productFields)
+	if err != nil {
+		t.Fatalf("Schema sync failed: %v", err)
+	}
+	timings = append(timings, struct {
+		name string
+		took time.Duration
+	}{"Schema Evolution", time.Since(start)})
+
+	// 13. Running Fluent Query: Category = 'updated_bulk'
 	results, err := query.NewQuery(db, "products").Filter(func(r core.Row) bool {
 		cat, _ := r["category"].(string)
 		return cat == "updated_bulk"
@@ -234,9 +249,9 @@ func TestFullShowcase(t *testing.T) {
 		took time.Duration
 	}{"Execute Query", time.Since(start)})
 
-	// 13. JSON Dump to File
+	// 14. JSON Dump to File
 	start = time.Now()
-	fmt.Println("13. Dumping 'products' to dump.json")
+	fmt.Println("14. Dumping 'products' to dump.json")
 	jsonDump, err := db.DumpAsJSON("products")
 	if err != nil {
 		t.Fatalf("Dump failed: %v", err)
@@ -252,9 +267,9 @@ func TestFullShowcase(t *testing.T) {
 		took time.Duration
 	}{"JSON Export", time.Since(start)})
 
-	// 14. Advanced Security: Generating secure.pem
+	// 15. Advanced Security: Generating secure.pem
 	start = time.Now()
-	fmt.Println("14. Advanced Security: Generating secure.pem (Master Key)")
+	fmt.Println("15. Advanced Security: Generating secure.pem (Master Key)")
 	err = db.Secure()
 	if err != nil {
 		t.Fatalf("Secure operation failed: %v", err)
@@ -271,9 +286,9 @@ func TestFullShowcase(t *testing.T) {
 		took time.Duration
 	}{"Generate Secure PEM", time.Since(start)})
 
-	// 15. Advanced Security: Authorizing Key Rotation
+	// 16. Advanced Security: Authorizing Key Rotation
 	start = time.Now()
-	fmt.Println("15. Advanced Security: Authorizing Key Rotation (Full Disk Re-encryption)")
+	fmt.Println("16. Advanced Security: Authorizing Key Rotation (Full Disk Re-encryption)")
 	newSecret := "rotated-secret-2026"
 	err = db.ChangeKey(newSecret, masterKey)
 	if err != nil {
