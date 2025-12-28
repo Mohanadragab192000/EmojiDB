@@ -29,6 +29,13 @@ func PersistClump(file *os.File, mu *sync.RWMutex, tableName string, clump inter
 	mu.Lock()
 	defer mu.Unlock()
 
+	if err := InternalPersistClump(file, tableName, clump, key, encryptFn, encodeFn); err != nil {
+		return err
+	}
+	return file.Sync()
+}
+
+func InternalPersistClump(file *os.File, tableName string, clump interface{}, key string, encryptFn func([]byte, string) ([]byte, error), encodeFn func([]byte) string) error {
 	_, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
 		return err
@@ -57,11 +64,7 @@ func PersistClump(file *os.File, mu *sync.RWMutex, tableName string, clump inter
 	pLenEncoded := encodeFn(pLenBytes)
 
 	_, err = file.WriteString(tbLenEncoded + tbNameEncoded + pLenEncoded + payloadEncoded)
-	if err != nil {
-		return err
-	}
-
-	return file.Sync()
+	return err
 }
 
 func Load(file *os.File, mu *sync.RWMutex, key string, decryptFn func([]byte, string) ([]byte, error), handleClump func(string, []byte) error) error {

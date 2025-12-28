@@ -152,7 +152,7 @@ func (db *Database) ChangeKey(newKey string, masterKey string) error {
 	for tableName, table := range db.Tables {
 		table.Mu.RLock()
 		for _, clump := range table.SealedClumps {
-			if err := storage.PersistClump(db.File, &db.Mu, tableName, clump, db.Key, crypto.Encrypt, crypto.EncodeToEmojis); err != nil {
+			if err := storage.InternalPersistClump(db.File, tableName, clump, db.Key, crypto.Encrypt, crypto.EncodeToEmojis); err != nil {
 				db.Key = oldKey // Rollback key if failed
 				table.Mu.RUnlock()
 				return err
@@ -161,7 +161,7 @@ func (db *Database) ChangeKey(newKey string, masterKey string) error {
 		table.Mu.RUnlock()
 	}
 
-	return nil
+	return db.File.Sync()
 }
 
 func (db *Database) DumpAsJSON(tableName string) (string, error) {
