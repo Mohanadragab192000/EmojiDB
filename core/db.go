@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,7 +15,6 @@ type Config struct {
 	MemoryLimitMB   int
 	ClumpSizeMB     int
 	FlushIntervalMS int
-	Encrypt         bool
 }
 
 type Database struct {
@@ -38,7 +38,11 @@ type Table struct {
 	SealedClumps []*SealedClump
 }
 
-func Open(path, key string, encrypt bool) (*Database, error) {
+func Open(path, key string) (*Database, error) {
+	if key == "" {
+		return nil, errors.New("database key is required")
+	}
+
 	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
@@ -57,7 +61,7 @@ func Open(path, key string, encrypt bool) (*Database, error) {
 		Key:        key,
 		File:       file,
 		SafetyFile: sFile,
-		Config:     &Config{Encrypt: encrypt},
+		Config:     &Config{},
 		Schemas:    make(map[string]*Schema),
 		Tables:     make(map[string]*Table),
 		Orphans:    make(map[string][]*SealedClump),
@@ -88,11 +92,40 @@ func (db *Database) Load() error {
 		return nil
 	}
 
-	return storage.Load(db.File, &db.Mu, db.Key, crypto.Decrypt, crypto.DecodeFromEmojis, handleClump)
+	return storage.Load(db.File, &db.Mu, db.Key, crypto.Decrypt, handleClump)
 }
 
 func (db *Database) PersistClump(tableName string, clump *SealedClump) error {
-	return storage.PersistClump(db.File, &db.Mu, tableName, clump, db.Config.Encrypt, db.Key, crypto.Encrypt, crypto.EncodeToEmojis)
+	return storage.PersistClump(db.File, &db.Mu, tableName, clump, db.Key, crypto.Encrypt, crypto.EncodeToEmojis)
+}
+
+func (db *Database) DumpAsJSON(tableName string) (string, error) {
+	db.Mu.RLock()
+	table, ok := db.Tables[tableName]
+	db.Mu.RUnlock()
+
+	if !ok {
+		return "", errors.New("table not found")
+	}
+
+	table.Mu.RLock()
+	defer table.Mu.RUnlock()
+
+	var allRows []Row
+	// Include clumps
+	for _, clump := range table.SealedClumps {
+		allRows = append(allRows, clump.Rows...)
+	}
+	// Include hot heap
+	if table.HotHeap != nil {
+		allRows = append(allRows, table.HotHeap.Rows...)
+	}
+
+	data, err := json.MarshalIndent(allRows, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }
 
 func (db *Database) Close() error {

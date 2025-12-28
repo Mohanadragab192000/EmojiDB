@@ -15,7 +15,7 @@ func TestSafetyEngine(t *testing.T) {
 	defer os.Remove(dbPath)
 	defer os.Remove(safetyPath)
 
-	db, err := core.Open(dbPath, "secret", true)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}

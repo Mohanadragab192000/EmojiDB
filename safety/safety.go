@@ -1,6 +1,7 @@
 package safety
 
 import (
+	"bufio"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -34,7 +35,11 @@ func BackupForSafety(db *core.Database, tableName string, row core.Row) error {
 		return err
 	}
 	emojiPayload := crypto.EncodeToEmojis(encrypted)
-	payloadBytes := []byte(emojiPayload)
+
+	// Store number of EMOJIS (which is len(encrypted))
+	sizeBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(sizeBytes, uint32(len(encrypted)))
+	sizeEncoded := crypto.EncodeToEmojis(sizeBytes)
 
 	db.Mu.Lock()
 	defer db.Mu.Unlock()
@@ -44,10 +49,8 @@ func BackupForSafety(db *core.Database, tableName string, row core.Row) error {
 		return err
 	}
 
-	if err := binary.Write(db.SafetyFile, binary.LittleEndian, uint32(len(payloadBytes))); err != nil {
-		return err
-	}
-	if _, err := db.SafetyFile.Write(payloadBytes); err != nil {
+	_, err = db.SafetyFile.WriteString(sizeEncoded + emojiPayload)
+	if err != nil {
 		return err
 	}
 
@@ -63,9 +66,10 @@ func ListRecoveryPoints(db *core.Database) ([]time.Time, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	br := bufio.NewReader(db.SafetyFile)
 	for {
-		var size uint32
-		err := binary.Read(db.SafetyFile, binary.LittleEndian, &size)
+		size, err := readIntEmoji(br)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -73,16 +77,17 @@ func ListRecoveryPoints(db *core.Database) ([]time.Time, error) {
 			return nil, err
 		}
 
+		// Read 'size' emojis
 		payload := make([]byte, size)
-		if _, err := io.ReadFull(db.SafetyFile, payload); err != nil {
-			return nil, err
+		for i := 0; i < int(size); i++ {
+			b, err := crypto.DecodeOne(br)
+			if err != nil {
+				return nil, err
+			}
+			payload[i] = b
 		}
 
-		decoded, err := crypto.DecodeFromEmojis(string(payload))
-		if err != nil {
-			continue
-		}
-		decrypted, err := crypto.Decrypt(decoded, db.Key)
+		decrypted, err := crypto.Decrypt(payload, db.Key)
 		if err != nil {
 			continue
 		}
@@ -98,4 +103,16 @@ func ListRecoveryPoints(db *core.Database) ([]time.Time, error) {
 	}
 
 	return points, nil
+}
+
+func readIntEmoji(r *bufio.Reader) (uint32, error) {
+	var buf []byte
+	for i := 0; i < 4; i++ {
+		b, err := crypto.DecodeOne(r)
+		if err != nil {
+			return 0, err
+		}
+		buf = append(buf, b)
+	}
+	return binary.LittleEndian.Uint32(buf), nil
 }

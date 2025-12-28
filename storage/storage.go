@@ -1,31 +1,31 @@
 package storage
 
 import (
+	"bufio"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/ikwerre-dev/emojidb/crypto"
 )
 
-type Config struct {
-	Encrypt bool
-}
-
-type Header struct {
-	Magic   [5]byte
-	Version uint32
-}
+const MagicRaw = "EMOJI"
 
 func WriteHeader(file *os.File) error {
-	var h Header
-	copy(h.Magic[:], "EMOJI")
-	h.Version = 1
-	return binary.Write(file, binary.LittleEndian, h)
+	mEncoded := crypto.EncodeToEmojis([]byte(MagicRaw))
+
+	vBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(vBytes, 1)
+	vEncoded := crypto.EncodeToEmojis(vBytes)
+
+	_, err := file.WriteString(mEncoded + vEncoded)
+	return err
 }
 
-func PersistClump(file *os.File, mu *sync.RWMutex, tableName string, clump interface{}, encrypt bool, key string, encryptFn func([]byte, string) ([]byte, error), encodeFn func([]byte) string) error {
+func PersistClump(file *os.File, mu *sync.RWMutex, tableName string, clump interface{}, key string, encryptFn func([]byte, string) ([]byte, error), encodeFn func([]byte) string) error {
 	mu.Lock()
 	defer mu.Unlock()
 
@@ -39,54 +39,40 @@ func PersistClump(file *os.File, mu *sync.RWMutex, tableName string, clump inter
 		return err
 	}
 
-	var finalData []byte
-	isEncrypted := encrypt && key != ""
-
-	if isEncrypted {
-		encrypted, err := encryptFn(data, key)
-		if err != nil {
-			return err
-		}
-		emojiPayload := encodeFn(encrypted)
-		finalData = []byte(emojiPayload)
-	} else {
-		finalData = data
+	encrypted, err := encryptFn(data, key)
+	if err != nil {
+		return err
 	}
+	payloadEncoded := encodeFn(encrypted)
 
 	tbNameBytes := []byte(tableName)
-	if err := binary.Write(file, binary.LittleEndian, uint32(len(tbNameBytes))); err != nil {
-		return err
-	}
-	if _, err := file.Write(tbNameBytes); err != nil {
-		return err
-	}
+	tbNameEncoded := encodeFn(tbNameBytes)
 
-	var encFlag uint8
-	if isEncrypted {
-		encFlag = 1
-	}
-	if err := binary.Write(file, binary.LittleEndian, encFlag); err != nil {
-		return err
-	}
+	tbLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(tbLenBytes, uint32(len(tbNameBytes)))
+	tbLenEncoded := encodeFn(tbLenBytes)
 
-	if err := binary.Write(file, binary.LittleEndian, uint32(len(finalData))); err != nil {
-		return err
-	}
-	if _, err := file.Write(finalData); err != nil {
+	pLenBytes := make([]byte, 4)
+	binary.LittleEndian.PutUint32(pLenBytes, uint32(len(encrypted)))
+	pLenEncoded := encodeFn(pLenBytes)
+
+	_, err = file.WriteString(tbLenEncoded + tbNameEncoded + pLenEncoded + payloadEncoded)
+	if err != nil {
 		return err
 	}
 
 	return file.Sync()
 }
 
-func Load(file *os.File, mu *sync.RWMutex, key string, decryptFn func([]byte, string) ([]byte, error), decodeFn func(string) ([]byte, error), handleClump func(string, []byte) error) error {
+func Load(file *os.File, mu *sync.RWMutex, key string, decryptFn func([]byte, string) ([]byte, error), handleClump func(string, []byte) error) error {
 	_, err := file.Seek(0, io.SeekStart)
 	if err != nil {
 		return err
 	}
 
-	var h Header
-	err = binary.Read(file, binary.LittleEndian, &h)
+	br := bufio.NewReader(file)
+
+	magic, err := readEmojis(br, 5)
 	if err != nil {
 		if errors.Is(err, io.EOF) {
 			return WriteHeader(file)
@@ -94,62 +80,63 @@ func Load(file *os.File, mu *sync.RWMutex, key string, decryptFn func([]byte, st
 		return err
 	}
 
-	if string(h.Magic[:]) != "EMOJI" {
-		return errors.New("invalid database file format")
+	if string(magic) != MagicRaw {
+		return errors.New("invalid database magic")
 	}
 
+	vBytes, err := readEmojis(br, 4)
+	if err != nil {
+		return err
+	}
+	_ = binary.LittleEndian.Uint32(vBytes)
+
 	for {
-		var nameLen uint32
-		err := binary.Read(file, binary.LittleEndian, &nameLen)
+		tlBytes, err := readEmojis(br, 4)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
 			}
 			return err
 		}
+		tbLen := binary.LittleEndian.Uint32(tlBytes)
 
-		nameBytes := make([]byte, nameLen)
-		if _, err := io.ReadFull(file, nameBytes); err != nil {
+		nameBytes, err := readEmojis(br, int(tbLen))
+		if err != nil {
 			return err
 		}
 		tableName := string(nameBytes)
 
-		var encFlag uint8
-		if err := binary.Read(file, binary.LittleEndian, &encFlag); err != nil {
+		plBytes, err := readEmojis(br, 4)
+		if err != nil {
+			return err
+		}
+		pLen := binary.LittleEndian.Uint32(plBytes)
+
+		payloadBytes, err := readEmojis(br, int(pLen))
+		if err != nil {
 			return err
 		}
 
-		var dataLen uint32
-		if err := binary.Read(file, binary.LittleEndian, &dataLen); err != nil {
+		decrypted, err := decryptFn(payloadBytes, key)
+		if err != nil {
 			return err
 		}
 
-		data := make([]byte, dataLen)
-		if _, err := io.ReadFull(file, data); err != nil {
-			return err
-		}
-
-		var finalData []byte
-		if encFlag == 1 {
-			if key == "" {
-				return errors.New("database is encrypted but no key provided")
-			}
-			encrypted, err := decodeFn(string(data))
-			if err != nil {
-				return err
-			}
-			decrypted, err := decryptFn(encrypted, key)
-			if err != nil {
-				return err
-			}
-			finalData = decrypted
-		} else {
-			finalData = data
-		}
-
-		if err := handleClump(tableName, finalData); err != nil {
+		if err := handleClump(tableName, decrypted); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func readEmojis(r *bufio.Reader, count int) ([]byte, error) {
+	var res []byte
+	for i := 0; i < count; i++ {
+		b, err := crypto.DecodeOne(r)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, b)
+	}
+	return res, nil
 }

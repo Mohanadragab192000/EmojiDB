@@ -11,7 +11,7 @@ func TestInsert(t *testing.T) {
 	dbPath := "test_insert.db"
 	defer os.Remove(dbPath)
 
-	db, err := core.Open(dbPath, "secret", true)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestClumpSealing(t *testing.T) {
 	dbPath := "test_seal.db"
 	defer os.Remove(dbPath)
 
-	db, err := core.Open(dbPath, "secret", true)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}

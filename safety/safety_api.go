@@ -1,7 +1,7 @@
 package safety
 
 import (
-	"encoding/binary"
+	"bufio"
 	"encoding/json"
 	"errors"
 	"io"
@@ -75,9 +75,9 @@ func Restore(db *core.Database, timestamp time.Time, accepted bool) error {
 		return err
 	}
 
+	br := bufio.NewReader(db.SafetyFile)
 	for {
-		var size uint32
-		err := binary.Read(db.SafetyFile, binary.LittleEndian, &size)
+		size, err := readIntEmoji(br)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break
@@ -86,17 +86,25 @@ func Restore(db *core.Database, timestamp time.Time, accepted bool) error {
 		}
 
 		payload := make([]byte, size)
-		if _, err := io.ReadFull(db.SafetyFile, payload); err != nil {
-			return err
+		for i := 0; i < int(size); i++ {
+			b, err := crypto.DecodeOne(br)
+			if err != nil {
+				return err
+			}
+			payload[i] = b
 		}
 
-		decoded, _ := crypto.DecodeFromEmojis(string(payload))
-		decrypted, _ := crypto.Decrypt(decoded, db.Key)
+		decrypted, err := crypto.Decrypt(payload, db.Key)
+		if err != nil {
+			continue
+		}
 
 		var backup SafetyBackup
-		json.Unmarshal(decrypted, &backup)
+		if err := json.Unmarshal(decrypted, &backup); err != nil {
+			continue
+		}
 
-		if backup.Timestamp.Equal(timestamp) {
+		if backup.Timestamp.Truncate(time.Second).Equal(timestamp.Truncate(time.Second)) {
 			if table, ok := db.Tables[backup.TableName]; ok {
 				table.Mu.Lock()
 				table.HotHeap.Rows = append(table.HotHeap.Rows, backup.Data)

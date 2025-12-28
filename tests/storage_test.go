@@ -11,7 +11,7 @@ func TestPersistence(t *testing.T) {
 	dbPath := "test_persist.db"
 	defer os.Remove(dbPath)
 
-	db, err := core.Open(dbPath, "secret", true)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}
@@ -29,7 +29,7 @@ func TestPersistence(t *testing.T) {
 	db.Close()
 
 	// Re-open
-	db2, err := core.Open(dbPath, "secret", true)
+	db2, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed re-open: %v", err)
 	}

@@ -11,7 +11,7 @@ func TestOpen(t *testing.T) {
 	dbPath := "test_open.db"
 	defer os.Remove(dbPath)
 
-	db, err := core.Open(dbPath, "secret", true)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}
@@ -20,8 +20,8 @@ func TestOpen(t *testing.T) {
 	if db.Path != dbPath {
 		t.Errorf("expected path %s, got %s", dbPath, db.Path)
 	}
-	if !db.Config.Encrypt {
-		t.Errorf("expected encryption enabled")
+	if db.Key != "secret" {
+		t.Errorf("expected key 'secret', got %s", db.Key)
 	}
 }
 
@@ -29,7 +29,7 @@ func TestDefineSchema(t *testing.T) {
 	dbPath := "test_schema.db"
 	defer os.Remove(dbPath)
 
-	db, err := core.Open(dbPath, "secret", true)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}

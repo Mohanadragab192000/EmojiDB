@@ -1,11 +1,11 @@
 # EmojiDB
 
-EmojiDB is a memory-first, encrypted, emoji-encoded embedded database engine written in Go.
+EmojiDB is a memory-first, 100% emoji-encoded embedded database engine written in Go.
 
 ## Features
-- **Memory-First**: High-speed ingestion using Hot Heaps.
-- **Encrypted**: AES-GCM encryption for all stored data.
-- **Emoji Encoding**: Encrypted bytes are mapped to a deterministic set of 256 emojis.
+- **Total Emoji Storage**: Every byte on disk (magic, metadata, payload) is stored as emojis.
+- **Mandatory Encryption**: AES-GCM encryption is enforced for all stored data.
+- **Memory-First**: High-speed ingestion using Hot Heaps and batch clumping.
 - **Safety Engine**: Automatic 30-minute recovery window for updates and deletes.
 - **Fluent Query API**: Simple, chainable filtering and projection.
 
@@ -21,8 +21,8 @@ import (
 )
 
 func main() {
-	// Open database
-	db, _ := core.Open("data.db", "your-secret-key", true)
+	// Open database (Key is mandatory)
+	db, _ := core.Open("data.db", "your-secret-key")
 	defer db.Close()
 
 	// Define schema
@@ -35,6 +35,9 @@ func main() {
 	// Insert data
 	db.Insert("users", core.Row{"id": 1, "name": "alice"})
 
+	// Force persistence to disk
+	db.Flush("users")
+
 	// Query data
 	q := query.NewQuery(db, "users")
 	results, _ := q.Filter(func(r core.Row) bool {
@@ -45,34 +48,53 @@ func main() {
 }
 ```
 
-## Testing
+## Clumping & Performance
 
-Run all tests across all modules:
+EmojiDB uses a **Memory-First, Append-Only** architecture. 
 
-```bash
-go test -v ./...
+### How Clumping Works
+1. **Hot Heap**: New rows are stored in a "Hot Heap" in memory.
+2. **Sealing**: When the heap reaches a limit (e.g., 1000 rows or 1MB), it is "sealed."
+3. **Persistence**: The sealed heap (a "Clump") is encrypted, emoji-encoded, and appended to the `.db` file.
+4. **Efficiency**: Instead of writing every row individually, we write large batches. This minimizes disk I/O and keeps the system fast even with high ingestion rates.
+
+### Testing Performance
+You can test the "internet speed" (throughput) by inserting 100,000 rows and measuring the time.
+```go
+start := time.Now()
+for i := 0; i < 100000; i++ {
+    db.Insert("users", row)
+}
+fmt.Printf("Ingestion Rate: %f rows/sec\n", 100000/time.Since(start).Seconds())
 ```
 
-To run specific tests:
-
-```bash
-# Core tests
-go test -v ./core/...
-
-# Safety engine tests
-go test -v ./safety/...
-
-# Query engine tests
-go test -v ./query/...
-
-# Integration tests
-go test -v ./tests/...
+### Query Testing
+Use the fluent API to verify clumping. If data is persisted, queries will scan both the memory (Hot Heap) and the disk (Sealed Clumps).
+```go
+results, _ := query.NewQuery(db, "users").Filter(f).Execute()
 ```
 
-## Structure
-- `core/`: Core engine and memory logic.
-- `crypto/`: Encryption and emoji mapping.
-- `storage/`: Persistence and file handling.
-- `query/`: Fluent query engine.
-- `safety/`: Backup and recovery engine.
-- `tests/`: Integration and cross-module tests.
+## Running in JavaScript
+
+Since EmojiDB is written in Go, you have two main ways to use it in JS:
+
+### 1. WebAssembly (WASM)
+Compile EmojiDB to WASM to run directly in the browser or Node.js.
+```bash
+GOOS=js GOARCH=wasm go build -o emojidb.wasm
+```
+
+### 2. Sidecar Service
+Run a small Go service as a "sidecar" that provides a REST or JSON-RPC API for your JS frontend. 
+
+## Full Feature Showcase
+
+To see a complete end-to-end demonstration of EmojiDB (initialization, ingestion, persistence, total emoji encoding, querying, safety backup, and JSON dumping), run the following command:
+
+```bash
+go test -v tests/full_integration_test.go
+```
+
+This will output a verbose log of all system processes and show the final data in human-readable JSON format.
+
+## Clumping & Performance

@@ -17,7 +17,7 @@ func TestQuery(t *testing.T) {
 	os.Remove(dbPath)
 	os.Remove(safetyPath)
 
-	db, err := core.Open(dbPath, "secret", false)
+	db, err := core.Open(dbPath, "secret")
 	if err != nil {
 		t.Fatalf("failed to open: %v", err)
 	}
