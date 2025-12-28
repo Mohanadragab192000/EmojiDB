@@ -9,7 +9,19 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class BinaryManager {
+// Custom Error for cleaner stack traces
+export class EmojiDBError extends Error {
+    constructor(message, originalStack) {
+        super(message);
+        this.name = 'EmojiDBError';
+        // Stitch the original stack (from the call site) to this error
+        if (originalStack) {
+            this.stack = `${this.name}: ${this.message}\n${originalStack.substring(originalStack.indexOf('\n') + 1)}`;
+        }
+    }
+}
+
+export class BinaryManager {
     constructor() {
         this.platform = os.platform();
         this.arch = os.arch();
@@ -101,7 +113,10 @@ class EmojiDB {
                     const res = JSON.parse(line);
                     const p = this.pending.get(res.id);
                     if (p) {
-                        if (res.error) p.reject(new Error(res.error));
+                        if (res.error) {
+                            // Rehydrate the error with the original stack trace
+                            p.reject(new EmojiDBError(res.error, p.stack));
+                        }
                         else p.resolve(res.data);
                         this.pending.delete(res.id);
                     }
@@ -133,8 +148,12 @@ class EmojiDB {
 
     async send(method, params = {}) {
         const id = Math.random().toString(36).substring(7);
+        // Capture stack trace at the call site (sync)
+        const stackContainer = {};
+        Error.captureStackTrace(stackContainer);
+
         return new Promise((resolve, reject) => {
-            this.pending.set(id, { resolve, reject });
+            this.pending.set(id, { resolve, reject, stack: stackContainer.stack });
             const payload = JSON.stringify({ id, method, params });
             if (!this.process || this.process.killed) {
                 return reject(new Error("Database not connected. Call db.connect() first."));
@@ -157,6 +176,14 @@ class EmojiDB {
 
     async query(table, match = {}) {
         return this.send('query', { table, match });
+    }
+
+    async migrate(table, fields) {
+        return this.send('sync_schema', { table, fields });
+    }
+
+    async pull() {
+        return this.send('pull_schema');
     }
 
     async update(table, match, updateData) {

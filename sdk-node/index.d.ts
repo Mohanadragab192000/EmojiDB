@@ -54,6 +54,18 @@ export default class EmojiDB {
     insert(table: string, row: Record<string, any>): Promise<string>;
 
     /**
+     * Applies schema changes to the database (Migration).
+     * @param table Name of the table.
+     * @param fields Array of new field definitions.
+     */
+    migrate(table: string, fields: Field[]): Promise<string>;
+
+    /**
+     * Forces the engine to regenerate the local schema file based on the database content (Pull).
+     */
+    pull(): Promise<string>;
+
+    /**
      * Queries a table for rows matching the criteria.
      * @param table Name of the table.
      * @param match (Optional) Filter object to match rows.

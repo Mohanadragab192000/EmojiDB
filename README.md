@@ -1,114 +1,124 @@
-#  EmojiDB: The Total Emoji Encrypted Database
+# 🦄 EmojiDB: Legend of the Encrypted Ledger
 
-EmojiDB is a high-performance, embedded database designed for maximum security and visual fun. Every record, every header, and even your schema definition is strictly 100% Emoji encoded.
+> **"The Database That Smiles Back"** 🛡️💎🌈
 
-## 🚀 Getting Started: Standard Workflow
+EmojiDB is a high-performance, embedded database engine written in Go. It encrypts **everything**—data, headers, and schemas—into 100% valid Emoji sequences. Now featuring a powerful **Node.js SDK** for modern web development.
 
-EmojiDB follows a stage-by-stage progression from absolute security to data persistence.
+---
 
-### Stage 1: Security Initialization 🔐
-Before creating a database, you must initialize the Master Security Layer. This generates a one-time `secure.pem` file which acts as your "set of emojis" for recovery and authorization.
-
-```go
-db, _ := core.Open("mydata.db", "my-secret-key")
-err := db.Secure() // Creates secure.pem
-```
-
-### Stage 2: Opening & Persistence 📦
-EmojiDB automatically manages your database inside a consolidated `emojidb/` folder:
-- `emojidb/[dbname].db`: The actual encrypted data.
-- `emojidb/[dbname].safety`: The crash-recovery buffer.
-- `emojidb/[dbname].schema.json`: Readable schema definitions (Prisma-style).
-
-```go
-// core.Open automatically handles folder creation and artifact routing
-db, err := core.Open("my.db", "showcase-secret-2025")
-defer db.Close()
-```
-
-### Stage 3: Schema Management 📐
-Like Prisma, EmojiDB uses persistent schemas. These are saved as plain JSON in `emojidb/[dbname].schema.json` for easy inspection.
-
-```go
-fields := []core.Field{
-    {Name: "id", Type: core.FieldTypeInt, Unique: true},
-    {Name: "name", Type: core.FieldTypeString},
-}
-
-// Initial definition
-db.DefineSchema("users", fields)
-```
-
-### Stage 4: Schema Evolution (The Prisma Way) 🔄
-You can update your schema and check for conflicts before applying.
-
-```go
-// 1. Check for conflicts (Prisma-like Pull/Diff)
-report := db.DiffSchema("users", newFields)
-if report.Destructive {
-    fmt.Println("Warning: Field removal detected!")
-}
-
-// 2. Sync if compatible (Prisma-like Push)
-err := db.SyncSchema("users", newFields)
-```
-
-### Stage 5: Data Operations ⚡
-EmojiDB is extremely fast (~45ms for 1500 operations).
-
-```go
-// Insert
-db.Insert("users", core.Row{"id": 1, "name": "Alice"})
-
-// Query
-results, _ := query.NewQuery(db, "users").Filter(...).Execute()
-```
-
-## 🛠️ Features
-
-- **Total Emoji Encoding**: 😵🤮😇🤒😷 - your raw data never touches the disk.
-- **AES-GCM Encryption**: Military-grade security on every clump.
-- **Master Key Recovery**: Use `secure.pem` emoji sequences to rotate your database secret.
-- **Unique Constraints**: O(1) performance for uniqueness checks.
-- **Safety Engine**: Parallelized batch recovery for zero data loss.
-
-## 🏁 Performance Benchmarks
-*Tested with 1500 records + Unique Keys + Full Disk Re-encryption*
-
-| Operation | Timing |
-| :--- | :--- |
-| **Ingest 1500 Rows** | ~9.1ms |
-| **Flush to Disk** | ~3.9ms |
-| **Rotate Master Key** | ~7.2ms |
-| **TOTAL SHOWCASE** | **~45.3ms** |
-## 🌐 Node.js Integration (Standalone SDK)
-
-EmojiDB provides a standalone Node.js SDK that **automatically downloads** the required Go engine for your platform. No Go installation required!
+## 🚀 Quick Start
 
 ### 1. Installation
 ```bash
 npm install @ikwerre-dev/emojidb
 ```
+*(The engine binary is automatically downloaded for your platform: Mac, Linux, or Windows).*
 
-### 2. Standalone Usage
+### 2. Basic Usage
 ```javascript
 import EmojiDB from '@ikwerre-dev/emojidb';
-const db = new EmojiDB(); // Auto-detects OS/Arch and downloads from GitHub
 
-async function start() {
-    await db.connect();
-    await db.open('prod.db', 'my-secret');
-    
-    await db.insert('users', { id: 1, name: 'Alice' });
-    const users = await db.query('users', { id: 1 });
-}
+const db = new EmojiDB();
+await db.connect();
+await db.open('my_app.db', 'super-secret-key');
 ```
 
-### 📦 Publishing Pre-built Binaries
-For the standalone mode to work, you must upload pre-compiled engines to your **GitHub Releases** with the following naming convention:
-- `emojidb-darwin-arm64` (Mac M1/M2)
-- `emojidb-linux-x64` (Linux Servers)
-- `emojidb-win32-x64.exe` (Windows)
+---
+
+## 📐 Defining Schemas & Creating Tables
+
+Before you can store data, you must define the **Schema**. This automatically creates the table and enforces data integrity.
+
+### The `defineSchema` Method
+```javascript
+await db.defineSchema('users', [
+    { Name: 'id',       Type: 0, Unique: true  },
+    { Name: 'username', Type: 1, Unique: true  }
+]);
+```
+
+### 🔄 Schema Evolution (Migrate & Pull)
+**Push Changes (`migrate`)**
+```javascript
+await db.migrate('users', [
+    { Name: 'id',       Type: 0, Unique: true  },
+    { Name: 'username', Type: 1, Unique: true  },
+    { Name: 'email',    Type: 1, Unique: true  } // New field
+]);
+```
+
+**Pull Schema (`pull`)**
+```javascript
+await db.pull(); // Regenerates local schema files from DB state
+```
+
+### 📝 Field Types
+| Type ID | Data Type | Example |
+| :--- | :--- | :--- |
+| `0` | **Integer** | `123` |
+| `1` | **String** | `"robinson"` |
+| `2` | **Boolean** | `true` |
+| `3` | **Float** | `10.5` |
+| `4` | **Map** | `{ "a": 1 }` |
+
+> **💡 Note:** Schemas are persisted to disk as readable JSON files (e.g., `emojidb/my_app.db.schema.json`).
 
 ---
-*EmojiDB: Zero-dependency, military-grade security.*
+
+## 🛠️ Data Operations (CRUD)
+
+### Insert Data
+```javascript
+await db.insert('users', {
+    id: 1,
+    username: 'emoji_king',
+    active: true
+});
+```
+
+### Query Data
+```javascript
+// Find user with id 1
+const users = await db.query('users', { id: 1 });
+console.log(users); 
+// Output: [{ id: 1, username: 'emoji_king', active: true }]
+```
+
+### Update Data
+```javascript
+// Rename user 1
+await db.update('users', { id: 1 }, { username: 'robinson_honour' });
+```
+
+### Delete Data
+```javascript
+// Remove user 1
+await db.delete('users', { id: 1 });
+```
+
+---
+
+## 🔐 Military-Grade Security
+
+EmojiDB isn't just cute; it's a fortress.
+- **AES-GCM Encryption**: All data is encrypted at rest.
+- **Emoji Encoding**: Ciphertext is encoded into emojis (e.g., 🔒🦄🌵), making it visually distinct and obfuscated.
+- **Master Key Rotation**: Built-in support for re-keying your entire database (`db.rekey()`).
+
+### Security Files
+All database artifacts are stored in the `emojidb/` directory:
+- `*.db`: The encrypted data.
+- `*.safety`: Crash recovery logs.
+- `secure.pem`: (Optional) Master key file for managed security.
+
+---
+
+## 🌍 Platform Support
+Our automated build system supports:
+- **macOS**: ARM64 (M1/M2/M3) & Intel x64
+- **Linux**: x64 & ARM64
+- **Windows**: x64 & ARM64
+
+---
+
+*Built by Robinson Honour. 🚀*

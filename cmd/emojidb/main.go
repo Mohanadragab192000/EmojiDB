@@ -72,6 +72,35 @@ func handle(req Request) {
 			sendSuccess(req.ID, "defined")
 		}
 
+	case "sync_schema":
+		var p struct {
+			Table  string       `json:"table"`
+			Fields []core.Field `json:"fields"`
+		}
+		json.Unmarshal(req.Params, &p)
+		if db == nil {
+			sendError(req.ID, "db not open")
+			return
+		}
+		err := db.SyncSchema(p.Table, p.Fields)
+		if err != nil {
+			sendError(req.ID, err.Error())
+		} else {
+			sendSuccess(req.ID, "migrated")
+		}
+
+	case "pull_schema":
+		if db == nil {
+			sendError(req.ID, "db not open")
+			return
+		}
+		err := db.SaveSchemas()
+		if err != nil {
+			sendError(req.ID, err.Error())
+		} else {
+			sendSuccess(req.ID, "pulled")
+		}
+
 	case "insert":
 		var p struct {
 			Table string   `json:"table"`

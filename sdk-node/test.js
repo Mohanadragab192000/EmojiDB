@@ -34,8 +34,21 @@ async function runTest() {
             console.log('❌ TEST FAILED: Data mismatch');
         }
 
+        // 6. Test Error Handling (Stack Trace Validation)
+        try {
+            console.log('6. Testing Error Stack Trace...');
+            await db.insert('users', { id: 101, username: 'duplicate_king' }); // Should fail unique constraint
+        } catch (err) {
+            console.log('✅ Error Caught:', err.message);
+            if (err.stack.includes('at runTest')) {
+                console.log('✅ Stack trace correctly points to user code!');
+            } else {
+                console.log('❌ Stack trace is missing user context:', err.stack);
+            }
+        }
+
         await db.close();
-        console.log('6. Connection Closed');
+        console.log('7. Connection Closed');
 
     } catch (err) {
         console.error('❌ TEST ERROR:', err.message);

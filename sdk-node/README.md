@@ -30,7 +30,35 @@ await db.connect();
 await db.open('prod.db', 'secret-key');
 ```
 
-### 2. Schema Definition
+### The `defineSchema` Method
+Use this for the initial table creation.
+```javascript
+await db.defineSchema('users', [
+    { Name: 'id',       Type: 0, Unique: true  },
+    { Name: 'username', Type: 1, Unique: true  }
+]);
+```
+
+### 🔄 Schema Evolution (Migrate & Pull)
+EmojiDB supports Prisma-like schema evolution.
+
+**Push Changes to DB (`migrate`)**  
+If you need to add fields to an existing table:
+```javascript
+await db.migrate('users', [
+    { Name: 'id',       Type: 0, Unique: true  },
+    { Name: 'username', Type: 1, Unique: true  },
+    { Name: 'email',    Type: 1, Unique: true  } // New field
+]);
+```
+
+**Pull Schema from DB (`pull`)**  
+Force-regenerate your local `emojidb/*.schema.json` file from the actual database state. Useful for syncing or recovering lost schema files.
+```javascript
+await db.pull();
+```
+
+### 📝 Field Types
 Schemas are required before any data operations.
 ```javascript
 await db.defineSchema('users', [
