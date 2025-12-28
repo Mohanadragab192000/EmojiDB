@@ -15,18 +15,19 @@ err := db.Secure() // Creates secure.pem
 ```
 
 ### Stage 2: Opening & Persistence 📦
-EmojiDB automatically manages three files for you:
-- `dbname.db`: The actual encrypted data.
-- `dbname.safety`: The crash-recovery buffer.
-- `dbname.schema`: The persistent schema definitions.
+EmojiDB automatically manages your database inside a consolidated `emojidb/` folder:
+- `emojidb/[dbname].db`: The actual encrypted data.
+- `emojidb/[dbname].safety`: The crash-recovery buffer.
+- `emojidb/[dbname].schema.json`: Readable schema definitions (Prisma-style).
 
 ```go
-db, err := core.Open("/path/to/my.db", "showcase-secret-2025")
+// core.Open automatically handles folder creation and artifact routing
+db, err := core.Open("my.db", "showcase-secret-2025")
 defer db.Close()
 ```
 
 ### Stage 3: Schema Management 📐
-Like Prisma, EmojiDB uses persistent schemas. Once you define a table, it stays fixed.
+Like Prisma, EmojiDB uses persistent schemas. These are saved as plain JSON in `emojidb/[dbname].schema.json` for easy inspection.
 
 ```go
 fields := []core.Field{

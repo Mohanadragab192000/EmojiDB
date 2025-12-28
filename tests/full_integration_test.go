@@ -14,12 +14,15 @@ import (
 
 func TestFullShowcase(t *testing.T) {
 	wd, _ := os.Getwd()
-	dbPath := filepath.Join(wd, "showcase.db")
+	// Correct paths for nested 'emojidb/' directory
+	dbDir := filepath.Join(wd, "emojidb")
+	dbPath := filepath.Join(dbDir, "showcase.db")
 	dumpPath := filepath.Join(wd, "dump.json")
 	safetyPath := dbPath + ".safety"
+	schemaPath := dbPath + ".schema.json"
+	pemPath := filepath.Join(dbDir, "secure.pem")
 
 	key := "showcase-secret-2025"
-
 	totalStart := time.Now()
 	var timings []struct {
 		name string
@@ -30,15 +33,18 @@ func TestFullShowcase(t *testing.T) {
 	fmt.Println("==========================================================")
 
 	// cleanup
-	os.Remove(dbPath)
-	os.Remove(safetyPath)
+	os.RemoveAll(dbDir)
 	os.Remove(dumpPath)
-	os.Remove(filepath.Join(wd, "secure.pem"))
+
+	_ = safetyPath
+	_ = schemaPath
+	_ = pemPath
 
 	// 1. Open Database
 	start := time.Now()
 	fmt.Printf("1. Opening Database (Encryption Mandatory)\n")
-	db, err := core.Open(dbPath, key)
+	// Open with base name, core.Open will handle the directory
+	db, err := core.Open("showcase.db", key)
 	if err != nil {
 		t.Fatalf("Failed to open: %v", err)
 	}
@@ -274,7 +280,6 @@ func TestFullShowcase(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Secure operation failed: %v", err)
 	}
-	pemPath := filepath.Join(filepath.Dir(dbPath), "secure.pem")
 	masterKeyBytes, err := os.ReadFile(pemPath)
 	if err != nil {
 		t.Fatalf("Failed to read secure.pem: %v", err)

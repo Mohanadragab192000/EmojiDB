@@ -49,19 +49,28 @@ func Open(path, key string) (*Database, error) {
 		return nil, errors.New("database key is required")
 	}
 
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0600)
+	// Ensure database resides in the 'emojidb' directory
+	dir := "emojidb"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create emojidb directory: %v", err)
+	}
+
+	baseName := filepath.Base(path)
+	fullPath := filepath.Join(dir, baseName)
+
+	file, err := os.OpenFile(fullPath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
 
-	safetyPath := path + ".safety"
+	safetyPath := fullPath + ".safety"
 	sFile, err := os.OpenFile(safetyPath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		file.Close()
 		return nil, err
 	}
 
-	schemaPath := path + ".schema"
+	schemaPath := fullPath + ".schema.json"
 	schFile, err := os.OpenFile(schemaPath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		file.Close()
@@ -70,7 +79,7 @@ func Open(path, key string) (*Database, error) {
 	}
 
 	db := &Database{
-		Path:       path,
+		Path:       fullPath,
 		Key:        key,
 		File:       file,
 		SafetyFile: sFile,
@@ -442,18 +451,11 @@ func (db *Database) DumpAsJSON(tableName string) (string, error) {
 
 func (db *Database) SaveSchemas() error {
 	db.Mu.RLock()
-	data, err := json.Marshal(db.Schemas)
+	data, err := json.MarshalIndent(db.Schemas, "", "  ")
 	db.Mu.RUnlock()
 	if err != nil {
 		return err
 	}
-
-	encrypted, err := crypto.Encrypt(data, db.Key)
-	if err != nil {
-		return err
-	}
-
-	encoded := crypto.EncodeToEmojis(encrypted)
 
 	db.Mu.Lock()
 	defer db.Mu.Unlock()
@@ -464,7 +466,7 @@ func (db *Database) SaveSchemas() error {
 	if _, err := db.SchemaFile.Seek(0, 0); err != nil {
 		return err
 	}
-	_, err = db.SchemaFile.WriteString(encoded)
+	_, err = db.SchemaFile.Write(data)
 	return db.SchemaFile.Sync()
 }
 
@@ -476,23 +478,13 @@ func (db *Database) LoadSchemas() error {
 		return err
 	}
 
-	content, err := os.ReadFile(db.Path + ".schema")
+	content, err := os.ReadFile(db.Path + ".schema.json")
 	if err != nil || len(content) == 0 {
 		return nil
 	}
 
-	decoded, err := crypto.DecodeFromEmojis(string(content))
-	if err != nil {
-		return err
-	}
-
-	decrypted, err := crypto.Decrypt(decoded, db.Key)
-	if err != nil {
-		return err
-	}
-
 	var schemas map[string]*Schema
-	if err := json.Unmarshal(decrypted, &schemas); err != nil {
+	if err := json.Unmarshal(content, &schemas); err != nil {
 		return err
 	}
 

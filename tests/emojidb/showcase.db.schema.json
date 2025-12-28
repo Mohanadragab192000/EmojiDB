@@ -1,0 +1,52 @@
+{
+  "orders": {
+    "Version": 1,
+    "Fields": [
+      {
+        "Name": "order_id",
+        "Type": 0,
+        "Unique": true
+      },
+      {
+        "Name": "product_id",
+        "Type": 0,
+        "Unique": false
+      },
+      {
+        "Name": "customer",
+        "Type": 1,
+        "Unique": false
+      }
+    ]
+  },
+  "products": {
+    "Version": 1,
+    "Fields": [
+      {
+        "Name": "id",
+        "Type": 0,
+        "Unique": true
+      },
+      {
+        "Name": "name",
+        "Type": 1,
+        "Unique": false
+      },
+      {
+        "Name": "price",
+        "Type": 0,
+        "Unique": false
+      },
+      {
+        "Name": "category",
+        "Type": 1,
+        "Unique": false
+      },
+      {
+        "Name": "stock",
+        "Type": 0,
+        "Unique": false
+      }
+    ]
+  }
+}
