@@ -1,20 +1,19 @@
-# 🦄 EmojiDB: Legend of the Encrypted Ledger
+# EmojiDB
 
-> **"The Database That Smiles Back"** 🛡️💎🌈
+**High-performance encrypted database engine with Node.js SDK**
 
-EmojiDB is a high-performance, embedded database engine written in Go. It encrypts **everything**—data, headers, and schemas—into 100% valid Emoji sequences. Now featuring a powerful **Node.js SDK** for modern web development.
+EmojiDB is an embedded database written in Go that encrypts all data, headers, and schemas into emoji sequences. Features automatic binary downloads, schema evolution, and military-grade encryption.
 
----
+## Quick Start
 
-## 🚀 Quick Start
-
-### 1. Installation
+### Installation
 ```bash
 npm install @ikwerre-dev/emojidb
 ```
-*(The engine binary is automatically downloaded for your platform: Mac, Linux, or Windows).*
 
-### 2. Basic Usage
+The engine binary is automatically downloaded for your platform (Mac, Linux, Windows).
+
+### Basic Usage
 ```javascript
 import EmojiDB from '@ikwerre-dev/emojidb';
 
@@ -23,13 +22,11 @@ await db.connect();
 await db.open('my_app.db', 'super-secret-key');
 ```
 
----
+## Schema Management
 
-## 📐 Defining Schemas & Creating Tables
+Define schemas before storing data to enforce structure and data integrity.
 
-Before you can store data, you must define the **Schema**. This automatically creates the table and enforces data integrity.
-
-### The `defineSchema` Method
+### Defining Schemas
 ```javascript
 await db.defineSchema('users', [
     { Name: 'id',       Type: 0, Unique: true  },
@@ -37,54 +34,45 @@ await db.defineSchema('users', [
 ]);
 ```
 
-### 🔄 Schema Evolution (Migrate & Pull)
-**1. Migrate Automatically**
-```javascript
-await db.migrate(); // Uses 'emojidb/*.schema.json'
-```
+### Field Types
+| Type ID | Data Type | Example |
+|---------|-----------|---------|
+| `0` | Integer | `123` |
+| `1` | String | `"robinson"` |
+| `2` | Boolean | `true` |
+| `3` | Float | `10.5` |
+| `4` | Map | `{ "a": 1 }` |
 
-**2. Push Changes Explicitly**
+Schemas are persisted as readable JSON files in `emojidb/*.schema.json`.
+
+## Schema Evolution
+
+### Automatic Migration
+```javascript
+await db.migrate();
+```
+Syncs all tables from your local `emojidb/*.schema.json` file.
+
+### Explicit Migration
 ```javascript
 await db.migrate('users', [...fields]);
 ```
 
-**⚠️ Force Migration (Destructive)**
+### Force Migration (Destructive)
 ```javascript
-// Validates all rows. DROPS rows that don't match or duplicate.
-await db.migrate('users', true); 
+await db.migrate('users', true);
 ```
+Validates all rows and drops any that don't match the new schema or contain duplicates.
 
-**3. Pull Schema (`pull`)**
+### Pull Schema
 ```javascript
-await db.pull(); // Regenerates local schema files
+await db.pull();
 ```
+Regenerates local schema files from the current database state.
 
-### 📊 Tools
-```javascript
-const count = await db.count('users', { active: true });
-await db.dropTable('logs');
-await db.flush('users'); // 💾 Force persist to disk
-```
-```javascript
-await db.pull(); // Regenerates local schema files from DB state
-```
+## Data Operations
 
-### 📝 Field Types
-| Type ID | Data Type | Example |
-| :--- | :--- | :--- |
-| `0` | **Integer** | `123` |
-| `1` | **String** | `"robinson"` |
-| `2` | **Boolean** | `true` |
-| `3` | **Float** | `10.5` |
-| `4` | **Map** | `{ "a": 1 }` |
-
-> **💡 Note:** Schemas are persisted to disk as readable JSON files (e.g., `emojidb/my_app.db.schema.json`).
-
----
-
-## 🛠️ Data Operations (CRUD)
-
-### Insert Data
+### Insert
 ```javascript
 await db.insert('users', {
     id: 1,
@@ -93,49 +81,61 @@ await db.insert('users', {
 });
 ```
 
-### Query Data
+### Query
 ```javascript
-// Find user with id 1
 const users = await db.query('users', { id: 1 });
-console.log(users); 
+console.log(users);
 // Output: [{ id: 1, username: 'emoji_king', active: true }]
 ```
 
-### Update Data
+### Update
 ```javascript
-// Rename user 1
 await db.update('users', { id: 1 }, { username: 'robinson_honour' });
 ```
 
-### Delete Data
+### Delete
 ```javascript
-// Remove user 1
 await db.delete('users', { id: 1 });
 ```
 
----
+## Utilities
 
-## 🔐 Military-Grade Security
+### Count Records
+```javascript
+const count = await db.count('users', { active: true });
+```
 
-EmojiDB isn't just cute; it's a fortress.
-- **AES-GCM Encryption**: All data is encrypted at rest.
-- **Emoji Encoding**: Ciphertext is encoded into emojis (e.g., 🔒🦄🌵), making it visually distinct and obfuscated.
-- **Master Key Rotation**: Built-in support for re-keying your entire database (`db.rekey()`).
+### Drop Table
+```javascript
+await db.dropTable('logs');
+```
+
+### Force Persist to Disk
+```javascript
+await db.flush('users');
+```
+
+## Security
+
+EmojiDB provides military-grade encryption:
+
+- **AES-GCM Encryption**: All data encrypted at rest
+- **Emoji Encoding**: Ciphertext encoded as emojis for obfuscation
+- **Master Key Rotation**: Built-in support via `db.rekey()`
 
 ### Security Files
 All database artifacts are stored in the `emojidb/` directory:
-- `*.db`: The encrypted data.
-- `*.safety`: Crash recovery logs.
-- `secure.pem`: (Optional) Master key file for managed security.
+- `*.db`: Encrypted data
+- `*.safety`: Crash recovery logs
+- `secure.pem`: Optional master key file
+
+## Platform Support
+
+Automated builds for:
+- **macOS**: ARM64 (M1/M2/M3) and Intel x64
+- **Linux**: x64 and ARM64
+- **Windows**: x64 and ARM64
 
 ---
 
-## 🌍 Platform Support
-Our automated build system supports:
-- **macOS**: ARM64 (M1/M2/M3) & Intel x64
-- **Linux**: x64 & ARM64
-- **Windows**: x64 & ARM64
-
----
-
-*Built by Robinson Honour. 🚀*
+*Built by Robinson Honour*
