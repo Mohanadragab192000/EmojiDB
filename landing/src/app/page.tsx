@@ -199,7 +199,7 @@ export default function Home() {
 
 
         <div className="grid grid-cols-1 border-x-2 border-x-white/90">
-          <div className="border-b-2 border-b-white/90 flex items-center justify-center py-8">
+          <div className="border-b-2 px-5 border-b-white/90 flex items-center justify-center py-8">
             <h2 className="font-sekuya text-4xl font-bold text-white/90">Performance Benchmarks</h2>
           </div>
         </div>
