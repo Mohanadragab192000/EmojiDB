@@ -24,8 +24,7 @@ export default function HeroSection({ onCopy }: HeroSectionProps) {
                     <Github size={15} className="md:size-5" />
                     <p className="text-sm md:text-base">Star this shit project on Github</p>
                 </a>
-
-                <div className="flex gap-2 items-center md:gap-5 col-span-1 md:col-span-4  md:px-10 text-sm md:text-base font-sekuya  md:justify-end p-3 md:p-5">
+                <div onClick={onCopy} className="flex gap-2 cursor-pointer items-center md:gap-5 col-span-1 md:col-span-4  md:px-10 text-sm md:text-base font-sekuya  md:justify-end p-3 md:p-5">
                     <Code size={15} className="md:hidden" />
 
                     <p className="truncate">npm install @ikwerre-dev/emojidb</p>
