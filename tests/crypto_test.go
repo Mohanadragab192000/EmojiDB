@@ -39,3 +39,19 @@ func TestEmojiEncoding(t *testing.T) {
 		t.Errorf("expected %v, got %v", data, decoded)
 	}
 }
+
+func TestDecryptWithWrongKeyFails(t *testing.T) {
+	keyA := "secret-key-a"
+	keyB := "secret-key-b"
+	data := []byte("hello world")
+
+	encrypted, err := crypto.Encrypt(data, keyA)
+	if err != nil {
+		t.Fatalf("failed to encrypt: %v", err)
+	}
+
+	decrypted, err := crypto.Decrypt(encrypted, keyB)
+	if err == nil {
+		t.Fatalf("expected decrypt to fail with wrong key, got data: %v", decrypted)
+	}
+}
